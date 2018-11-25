@@ -137,7 +137,7 @@ function build_command ()
 
 function echo_usage ()
 {
-    echo "usage: ${0} [${COMMAND_LIST[@]}]"
+    echo "usage: $( basename ${0} ) [${COMMAND_LIST[@]}]"
 }
 
 function echo_help ()
@@ -222,7 +222,6 @@ for option in "${@}" ; do
         * )
             echo "illegal option ${option}"
             echo_usage
-            echo_help
             exit 1
             ;;
     esac
