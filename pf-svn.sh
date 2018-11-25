@@ -111,7 +111,7 @@ function port_forward ()
 function kill_processes ()
 {
     pgrep -f -l "aoki"
-    pgrep -f -l "ssh .*cc2000.kyoto-su.ac.jp"
+    pgrep -f -l "ssh .*${SSH_TARGET_SERVER}"
     for pid in $( pgrep -f "aoki" ) ; do
         read -p "Kill ${pid} process. OK?  (y/N) :" reaction
         if [ "${reaction}" == "y" ] ; then
@@ -121,7 +121,7 @@ function kill_processes ()
             fi
         fi
     done
-    for pid in $( pgrep -f "ssh .*cc2000.kyoto-su.ac.jp" ) ; do
+    for pid in $( pgrep -f "ssh .*${SSH_TARGET_SERVER}" ) ; do
         read -p "Kill ${pid} process. OK?  (y/N) :" reaction
         if [ "${reaction}" == "y" ] ; then
             kill $pid
