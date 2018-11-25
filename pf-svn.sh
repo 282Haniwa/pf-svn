@@ -5,8 +5,7 @@ SETUP_FLAG=false
 WORK_DIRECTORY="/Users/UserName/WorkSpace/"
 PAGE_URL="http://localhost:10280/index.html"
 SSH_TARGET_SERVER="ssh target server"
-SSH_PORT_FORWARD_NUMBER=10280
-PORT_FORWARD_CONECTION_TIME=300
+SSH_PORT_FORWARD_ADDRESS="10280:target:80"
 
 COMMAND_HELP="help"
 COMMAND_SETUP="setup"
@@ -51,22 +50,12 @@ function setup ()
 
     echo
     echo "Enter port fowrading port number."
-    echo "It is Now \"${SSH_PORT_FORWARD_NUMBER}\"."
+    echo "It is Now \"${SSH_PORT_FORWARD_ADDRESS}\"."
     echo "If you don't need change don't enter anything."
     echo "You should enter number."
     read -p "> " new_SSH_PORT_FORWARD_NUMBER
     if [ "${new_SSH_PORT_FORWARD_NUMBER}" != "" ] ; then
-        sed -i ".old" -e "s/^SSH_PORT_FORWARD_NUMBER=\".*\"/SSH_PORT_FORWARD_NUMBER=${new_SSH_PORT_FORWARD_NUMBER}/g" $script_path
-    fi
-
-    echo
-    echo "Enter port fowrading time."
-    echo "It is Now \"${PORT_FORWARD_CONECTION_TIME}\"."
-    echo "If you don't need change don't enter anything."
-    echo "You should enter number."
-    read -p "> " new_port_foward_connection_time
-    if [ "${new_port_foward_connection_time}" != "" ] ; then
-        sed -i ".old" -e "s/^PORT_FORWARD_CONECTION_TIME=\".*\"/PORT_FORWARD_CONECTION_TIME=${new_port_foward_connection_time}/g" $script_path
+        sed -i ".old" -e "s/^SSH_PORT_FORWARD_ADDRESS=\".*\"/SSH_PORT_FORWARD_ADDRESS=${new_SSH_PORT_FORWARD_NUMBER}/g" $script_path
     fi
 
     if [ $SETUP_FLAG ] ; then
@@ -88,8 +77,8 @@ function connect_ssh ()
         echo "Exit other connection"
         kill_processes
     fi
-    echo "Connecting bluetree..."
-    ssh -L "${SSH_PORT_FORWARD_NUMBER}:bluetree:80" $SSH_TARGET_SERVER
+    echo "Connecting server..."
+    ssh -L $SSH_PORT_FORWARD_ADDRESS $SSH_TARGET_SERVER
 }
 
 function port_forward ()
@@ -98,21 +87,16 @@ function port_forward ()
     if [ $? == 0 ] ; then
         echo "Network already connected."
     else
-        echo "Connecting bluetree..."
-        if [ $1 ] ; then
-            echo "and exit connection after ${1} sec."
-            ssh -L "${SSH_PORT_FORWARD_NUMBER}:bluetree:80" $SSH_TARGET_SERVER "(while true ; do date > /dev/null ; sleep 10 ; done) & (sleep ${1} ; exit)&" &
-        else
-            ssh -L "${SSH_PORT_FORWARD_NUMBER}:bluetree:80" $SSH_TARGET_SERVER "(while true ; do date > /dev/null ; sleep 10 ; done)" &
-        fi
+        echo "Connecting server..."
+        ssh -fN -L $SSH_PORT_FORWARD_ADDRESS $SSH_TARGET_SERVER
     fi
 }
 
 function kill_processes ()
 {
-    pgrep -f -l "aoki"
+    pgrep -f -l $0
     pgrep -f -l "ssh .*${SSH_TARGET_SERVER}"
-    for pid in $( pgrep -f "aoki" ) ; do
+    for pid in $( pgrep -f "${0}" ) ; do
         read -p "Kill ${pid} process. OK?  (y/N) :" reaction
         if [ "${reaction}" == "y" ] ; then
             kill $pid
@@ -153,7 +137,7 @@ function build_command ()
 
 function echo_usage ()
 {
-    echo "usage: aoki [${COMMAND_LIST[@]}]"
+    echo "usage: ${0} [${COMMAND_LIST[@]}]"
 }
 
 function echo_help ()
@@ -186,11 +170,7 @@ for option in "${@}" ; do
             exit 0
             ;;
         $COMMAND_PORT_FPRWARD )
-            if [ $2 ] ; then
-                port_forward $2
-            else
-                port_forward
-            fi
+            port_forward
             exit 0
             ;;
         $COMMAND_OPEN )
@@ -205,7 +185,7 @@ for option in "${@}" ; do
                     exit 0
                     ;;
             esac
-            echo "aoki ${COMMAND_OPEN} [page dir]"
+            echo "${0} ${COMMAND_OPEN} [page dir]"
             exit 0
             ;;
         $COMMAND_CHECK )
@@ -219,9 +199,9 @@ for option in "${@}" ; do
             ;;
         $COMMAND_SVN )
             # svnコマンドのwrap
-            # コマンド実行時に接続を確認し、接続がない場合にPORT_FORWARD_CONECTION_TIME秒の接続を確保し、
+            # コマンド実行時に接続を確認し、接続がない場合にポートフォワードを実行し、
             # svnコマンドを実行する。
-            (port_forward $PORT_FORWARD_CONECTION_TIME) &
+            port_forward
             check_connection
             while [ $? != 0 ] ; do
                 sleep 1
